@@ -1,163 +1,174 @@
 #include <iostream>
 #include <string>
-#include <vector>
+#include <limits>
 
 using namespace std;
 
-const int TABLE_SIZE = 10;
-struct Product {
+struct Product
+{
     int id;
     string name;
-    double price;
-    Product* next;
+    float price;
 
-    Product(int id, string name, double price,)
-        : id(id), name(name), price(price), next(nullptr) {}
-};
-struct HashNode {
-    int key;
-    Product* productPtr; 
-    HashNode* next;
-
-    HashNode(int k, Product* p) : key(k), next(nullptr) {}
+    Product* next;       
+    Product* hashNext;   
 };
 
-class InventorySystem {
-private:
-    Product* head;
-    Product* tail;
-    vector<HashNode*> hashTable;
+Product* head = NULL;
 
-    int hashFunction(int id) {
-        return id % TABLE_SIZE;
-    }
+const int SIZE = 10;
+Product* hashTable[SIZE] = {NULL};
 
-public:
-    InventorySystem() : head(nullptr), tail(nullptr) {
-        hashTable.resize(TABLE_SIZE, nullptr);
-    }
+int hashFunction(int id)
+{
+    return id % SIZE;
+}
 
-    // Add a new product (O(1) average time)
-    void addProduct(int id, string name, double price, int stock) {
-        if (searchProduct(id) != nullptr) {
-            cout << "Error: Product ID " << id << " already exists.\n";
+void addProduct()
+{
+    Product* p = new Product;
+
+    cout << "Enter Product ID: ";
+    cin >> p->id;
+
+    int index = hashFunction(p->id);
+    Product* temp = hashTable[index];
+
+    while (temp != NULL)
+    {
+        if (temp->id == p->id)
+        {
+            cout << "Product ID already exists!\n";
+            delete p;
             return;
         }
 
-        // Insert into Doubly Linked List
-        Product* newProd = new Product(id, name, price, stock);
-        if (!head) {
-            head = tail = newProd;
-        } else {
-            tail->next = newProd;
-            newProd->prev = tail;
-            tail = newProd;
-        }
-
-        // Insert into Hash Table (Chaining)
-        int index = hashFunction(id);
-        HashNode* newHashNode = new HashNode(id, newProd);
-        newHashNode->next = hashTable[index];
-        hashTable[index] = newHashNode;
-
-        cout << "Added: " << name << " (ID: " << id << ")\n";
+        temp = temp->hashNext;
     }
 
-    // Fast lookup via Hash Table (O(1) average time)
-    Product* searchProduct(int id) {
-        int index = hashFunction(id);
-        HashNode* current = hashTable[index];
-        while (current != nullptr) {
-            if (current->key == id) {
-                return current->productPtr;
-            }
-            current = current->next;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    cout << "Enter Product Name: ";
+    getline(cin, p->name);
+
+    cout << "Enter Product Price: ";
+    cin >> p->price;
+
+    p->next = NULL;
+
+    if (head == NULL)
+    {
+        head = p;
+    }
+    else
+    {
+        Product* temp = head;
+
+        while (temp->next != NULL)
+        {
+            temp = temp->next;
         }
-        return nullptr;
+
+        temp->next = p;
     }
 
-    // Update product details (O(1) average time)
-    void updateProduct(int id, double newPrice, int newStock) {
-        Product* prod = searchProduct(id);
-        if (!prod) {
-            cout << "Product ID " << id << " not found.\n";
+    p->hashNext = hashTable[index];
+    hashTable[index] = p;
+
+    cout << "Product Added Successfully!\n";
+}
+
+void updatePrice()
+{
+    int id;
+
+    cout << "Enter Product ID to update price: ";
+    cin >> id;
+
+    int index = hashFunction(id);
+
+    Product* temp = hashTable[index];
+
+    while (temp != NULL)
+    {
+        if (temp->id == id)
+        {
+            cout << "Current Price: " << temp->price << endl;
+
+            cout << "Enter New Price: ";
+            cin >> temp->price;
+
+            cout << "Product Price Updated Successfully!\n";
             return;
         }
-        prod->price = newPrice;
-        prod->stock = newStock;
-        cout << "Updated ID " << id << ": Price = $" << newPrice << ", Stock = " << newStock << "\n";
+
+        temp = temp->hashNext;
     }
 
-    // Remove discontinued product (O(1) average time)
-    void removeProduct(int id) {
-        int index = hashFunction(id);
-        HashNode* currHash = hashTable[index];
-        HashNode* prevHash = nullptr;
+    cout << "Product not found!\n";
+}
 
-        // Find and remove from Hash Table
-        while (currHash != nullptr && currHash->key != id) {
-            prevHash = currHash;
-            currHash = currHash->next;
-        }
+void displayProducts()
+{
+    Product* temp = head;
 
-        if (!currHash) {
-            cout << "Product ID " << id << " not found.\n";
-            return;
-        }
-
-        if (prevHash) {
-            prevHash->next = currHash->next;
-        } else {
-            hashTable[index] = currHash->next;
-        }
-
-        Product* target = currHash->productPtr;
-        delete currHash;
-
-        // Unlink and delete from Doubly Linked List
-        if (target->prev) target->prev->next = target->next;
-        else head = target->next;
-
-        if (target->next) target->next->prev = target->prev;
-        else tail = target->prev;
-
-        cout << "Removed: " << target->name << " (ID: " << id << ")\n";
-        delete target;
+    if (temp == NULL)
+    {
+        cout << "No Products Available.\n";
+        return;
     }
 
-    // Display all available products (O(N) time)
-    void displayCatalog() {
-        cout << "\n--- Product Catalog ---\n";
-        if (!head) {
-            cout << "Catalog is empty.\n";
-            return;
-        }
-        Product* current = head;
-        while (current != nullptr) {
-            cout << "ID: " << current->id
-                 << " | Name: " << current->name
-                 << " | Price: $" << current->price
-                 << " | Stock: " << current->stock << "\n";
-            current = current->next;
-        }
-        cout << "-----------------------\n\n";
+    cout << "\n--- All Available Products ---\n";
+
+    while (temp != NULL)
+    {
+        cout << "\nProduct ID: " << temp->id << endl;
+        cout << "Product Name: " << temp->name << endl;
+        cout << "Product Price: " << temp->price << endl;
+
+        temp = temp->next;
     }
-};
+}
 
-int main() {
-    InventorySystem store;
+int main()
+{
+    int choice;
 
-    store.addProduct(101, "Wireless Mouse", 25.99, 50);
-    store.addProduct(111, "Mechanical Keyboard", 89.50, 30); // Collides with 101 (111 % 10 == 1)
-    store.addProduct(205, "USB-C Hub", 34.00, 15);
+    do
+    {
+        cout << "\n--- E-Commerce Product Catalog System ---\n";
 
-    store.displayCatalog();
+        cout << "1. Add New Product\n";
+        cout << "2. Update Product Price\n";
+        cout << "3. Display All Products\n";
+        cout << "4. Exit\n";
 
-    store.updateProduct(111, 79.99, 25);
-    store.removeProduct(101);
+        cout << "Enter your choice: ";
+        cin >> choice;
 
-    store.displayCatalog();
+        switch (choice)
+        {
+            case 1:
+                addProduct();
+                break;
+
+            case 2:
+                updatePrice();
+                break;
+
+            case 3:
+                displayProducts();
+                break;
+
+            case 4:
+                cout << "Exiting Program...\n";
+                break;
+
+            default:
+                cout << "Invalid Choice!\n";
+        }
+
+    } while (choice != 4);
 
     return 0;
 }
-
